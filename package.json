@@ -1,0 +1,14 @@
+{
+  "name": "adguard-home-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Modern, responsive web dashboard and analytics proxy for AdGuard Home",
+  "scripts": {
+    "start": "npm --prefix server start",
+    "dev:server": "npm --prefix server start",
+    "dev:dashboard": "npm --prefix dashboard dev",
+    "build": "npm --prefix dashboard run build",
+    "lint": "npm --prefix dashboard run lint",
+    "test": "npm --prefix server test"
+  }
+}

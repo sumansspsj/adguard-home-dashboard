@@ -1,0 +1,41 @@
+name: Web CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  test-and-build:
+    name: Test Server & Build Dashboard
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          cache-dependency-path: |
+            server/package-lock.json
+            dashboard/package-lock.json
+
+      - name: Install Server Dependencies
+        run: npm --prefix server ci
+
+      - name: Run Server Test Suite
+        run: npm --prefix server test
+
+      - name: Install Dashboard Dependencies
+        run: npm --prefix dashboard ci
+
+      - name: Lint Dashboard
+        run: npm --prefix dashboard run lint
+
+      - name: Build Dashboard Web Bundle
+        run: npm --prefix dashboard run build
