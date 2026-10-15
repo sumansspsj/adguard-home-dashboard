@@ -1,7 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import type { ClientConfig } from './types';
 import { AtlasMap, type Padding } from './AtlasMap';
 import type { AtlasStore, Place, Selection, Theme } from './store';
+
+export interface MapViewHandle {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
+}
 
 interface Props {
   store: AtlasStore;
@@ -15,19 +21,32 @@ interface Props {
   className?: string;
 }
 
-export function MapView({
-  store,
-  config,
-  padding,
-  places,
-  selection,
-  paused,
-  theme,
-  labels,
-  className = '',
-}: Props) {
+export const MapView = forwardRef<MapViewHandle, Props>(function MapView(
+  {
+    store,
+    config,
+    padding,
+    places,
+    selection,
+    paused,
+    theme,
+    labels,
+    className = '',
+  }: Props,
+  ref
+) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<AtlasMap | null>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      zoomIn: () => map.current?.zoomIn(),
+      zoomOut: () => map.current?.zoomOut(),
+      resetZoom: () => map.current?.resetZoom(),
+    }),
+    []
+  );
 
   useEffect(() => {
     if (!container.current) return;
@@ -69,4 +88,4 @@ export function MapView({
       aria-label="World map of live DNS queries"
     />
   );
-}
+});

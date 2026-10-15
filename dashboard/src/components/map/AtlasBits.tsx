@@ -25,6 +25,15 @@ export const fmtTime = (t: number) => clockFmt.format(t);
 export const fmtShare = (share: number) =>
   share === 0 ? '0%' : share < 0.1 ? `${(share * 100).toFixed(1)}%` : `${Math.round(share * 100)}%`;
 
+export function countryFlag(cc?: string): string {
+  if (!cc || cc.length !== 2) return '🌐';
+  const upper = cc.toUpperCase();
+  const c1 = upper.charCodeAt(0) - 65;
+  const c2 = upper.charCodeAt(1) - 65;
+  if (c1 < 0 || c1 > 25 || c2 < 0 || c2 > 25) return '🌐';
+  return String.fromCodePoint(0x1f1e6 + c1, 0x1f1e6 + c2);
+}
+
 export function ClassGlyph({ cls, size = 12 }: { cls: QueryClass; size?: number }) {
   const common = { width: size, height: size, viewBox: '0 0 12 12', className: `glyph glyph-${cls}`, 'aria-hidden': true };
   switch (cls) {

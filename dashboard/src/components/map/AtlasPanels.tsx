@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react';
 import { placeKey, type AtlasStore, type Row, type Snapshot } from './store';
-import { ClassGlyph, Domain, fmt, fmtCompact, fmtShare, fmtTime, whereOf } from './AtlasBits';
-import { X, Globe } from 'lucide-react';
+import { ClassGlyph, Domain, countryFlag, fmt, fmtCompact, fmtShare, fmtTime, whereOf } from './AtlasBits';
+import { X } from 'lucide-react';
 
 interface PanelProps {
   store: AtlasStore;
@@ -184,8 +184,10 @@ export function StatsHUD({ store, snap, windowMinutes, onClose }: PanelProps) {
         rows={view.topCountries}
         render={(r) => (
           <span className="flex items-center gap-1.5">
-            <Globe className="w-3.5 h-3.5 text-[var(--muted)]" />
-            <span>{r.label}</span>
+            <span className="text-xs leading-none" role="img" aria-label={r.label}>
+              {countryFlag(r.cc)}
+            </span>
+            <span className="truncate">{r.label}</span>
           </span>
         )}
         onPick={(r) => store.select({ kind: 'country', cc: r.cc ?? '', name: r.label })}
@@ -294,7 +296,12 @@ export function SelectionDrawer({ store, snap }: { store: AtlasStore; snap: Snap
       <div className="space-y-4 overflow-y-auto pr-1">
         <div className="flex items-start justify-between border-b border-[var(--border)] pb-3">
           <div>
-            <h3 className="text-base font-bold text-[var(--text)] tracking-tight">{detail.title}</h3>
+            <h3 className="text-base font-bold text-[var(--text)] tracking-tight flex items-center gap-1.5">
+              {selection.kind === 'country' && selection.cc && (
+                <span className="text-base leading-none">{countryFlag(selection.cc)}</span>
+              )}
+              <span>{detail.title}</span>
+            </h3>
             {detail.subtitle && <p className="text-xs text-[var(--muted)]">{detail.subtitle}</p>}
           </div>
           <button

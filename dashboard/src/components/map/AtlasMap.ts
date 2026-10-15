@@ -211,14 +211,30 @@ export class AtlasMap {
     this.fx.addEventListener('pointerleave', this.onPointerLeave);
     this.fx.addEventListener('wheel', this.onWheel, { passive: false });
     this.fx.addEventListener('dblclick', this.onDoubleClick);
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
 
     // The bundled fonts load after first paint; labels are redrawn every frame anyway.
     this.raf = requestAnimationFrame(this.frame);
   }
 
+  private onVisibilityChange = (): void => {
+    if (document.hidden) {
+      if (this.raf) {
+        cancelAnimationFrame(this.raf);
+        this.raf = 0;
+      }
+    } else {
+      if (!this.raf && !this.destroyed) {
+        this.lastFrame = 0;
+        this.raf = requestAnimationFrame(this.frame);
+      }
+    }
+  };
+
   destroy(): void {
     this.destroyed = true;
     cancelAnimationFrame(this.raf);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
     this.resizeObserver.disconnect();
     this.fx.removeEventListener('pointerdown', this.onPointerDown);
     this.fx.removeEventListener('pointermove', this.onPointerMove);
@@ -230,6 +246,23 @@ export class AtlasMap {
     this.base.remove();
     this.fx.remove();
     this.tooltip.remove();
+  }
+
+  zoomIn(): void {
+    const cx = this.width / 2;
+    const cy = this.height / 2;
+    this.zoomAt(cx, cy, this.zoom.k * 1.5);
+  }
+
+  zoomOut(): void {
+    const cx = this.width / 2;
+    const cy = this.height / 2;
+    this.zoomAt(cx, cy, this.zoom.k / 1.5);
+  }
+
+  resetZoom(): void {
+    this.zoom = { k: 1, x: 0, y: 0 };
+    this.applyZoom();
   }
 
   setHome(home: { lat: number; lon: number; label?: string }): void {

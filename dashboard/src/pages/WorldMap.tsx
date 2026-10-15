@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { MapView } from '../components/map/MapView';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { MapView, type MapViewHandle } from '../components/map/MapView';
 import { AtlasStore } from '../components/map/store';
 import { StatsHUD, LiveFeedPanel, SelectionDrawer } from '../components/map/AtlasPanels';
 import { STATIC_DEMO_CONFIG, type ClientConfig, type QueryClass } from '../components/map/types';
@@ -20,6 +20,12 @@ import {
   Check,
   Crosshair,
   Loader2,
+  Plus,
+  Minus,
+  RotateCcw,
+  Laptop,
+  ChevronDown,
+  Globe,
 } from 'lucide-react';
 
 export default function WorldMapPage() {
@@ -103,6 +109,11 @@ export default function WorldMapPage() {
 
   // Subscribe to store snapshot
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot);
+
+  const mapRef = useRef<MapViewHandle>(null);
+  const hasActiveFilters = Boolean(
+    snap.filters.device || snap.selection || snap.filters.text.trim()
+  );
 
   // 1. Fetch remote atlas configuration and initial snapshot on mount
   useEffect(() => {
@@ -282,6 +293,27 @@ export default function WorldMapPage() {
             <MapPin className="w-3.5 h-3.5 text-[var(--green)]" />
             <span className="font-medium truncate max-w-[130px]">{clientConfig.home.label}</span>
           </button>
+
+          {/* Client Device Selector Dropdown */}
+          {snap.view.devices.length > 0 && (
+            <div className="relative inline-flex items-center">
+              <Laptop className="w-3.5 h-3.5 text-[var(--muted)] absolute left-2.5 pointer-events-none" />
+              <select
+                value={snap.filters.device || ''}
+                onChange={(e) => store.setFilters({ device: e.target.value || null })}
+                className="pl-7 pr-6 py-1 rounded-full bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--border)] hover:border-[var(--strong-border)] text-xs text-[var(--text)] transition-colors cursor-pointer shadow-md focus:outline-hidden font-medium max-w-[140px] sm:max-w-[170px] truncate"
+                title="Filter map to a specific client device"
+              >
+                <option value="">All Devices ({snap.view.devices.length})</option>
+                {snap.view.devices.map((dev) => (
+                  <option key={dev} value={dev}>
+                    {dev}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3 h-3 text-[var(--muted)] absolute right-2 pointer-events-none" />
+            </div>
+          )}
         </div>
 
         {/* Right: Quick Action Controls */}
@@ -420,6 +452,7 @@ export default function WorldMapPage() {
       {/* Interactive Canvas World Map */}
       <div className="relative flex-1 w-full h-full">
         <MapView
+          ref={mapRef}
           store={store}
           config={clientConfig}
           padding={padding}
@@ -429,7 +462,105 @@ export default function WorldMapPage() {
           theme="dark"
           labels={labels}
         />
+
+        {/* Floating Bottom-Right Zoom & Reset Controls */}
+        <div className="absolute bottom-4 right-4 z-20 flex flex-col gap-1.5 pointer-events-auto">
+          <button
+            type="button"
+            onClick={() => mapRef.current?.zoomIn()}
+            className="p-2 rounded-lg bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--border)] hover:border-[var(--strong-border)] hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors cursor-pointer shadow-md"
+            title="Zoom In"
+            aria-label="Zoom In"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => mapRef.current?.zoomOut()}
+            className="p-2 rounded-lg bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--border)] hover:border-[var(--strong-border)] hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors cursor-pointer shadow-md"
+            title="Zoom Out"
+            aria-label="Zoom Out"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => mapRef.current?.resetZoom()}
+            className="p-2 rounded-lg bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--border)] hover:border-[var(--strong-border)] hover:bg-[var(--surface-2)] text-[var(--text)] transition-colors cursor-pointer shadow-md"
+            title="Reset Map View"
+            aria-label="Reset Map View"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+
+      {/* Floating Center: Active Filter Indicators */}
+      {hasActiveFilters && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 p-1 px-2.5 rounded-full bg-[var(--surface)]/95 backdrop-blur-md border border-[var(--border)] shadow-xl text-xs pointer-events-auto animate-fade-in max-w-[90vw] overflow-x-auto no-scrollbar">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)] pl-1 hidden sm:inline">
+            Filters:
+          </span>
+
+          {snap.filters.device && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--surface-2)] border border-[var(--border)] text-xs text-[var(--text)] shadow-2xs">
+              <Laptop className="w-3 h-3 text-[var(--green)]" />
+              <span className="font-mono text-[11px] truncate max-w-[110px]">{snap.filters.device}</span>
+              <button
+                type="button"
+                onClick={() => store.setFilters({ device: null })}
+                className="hover:text-[var(--red)] cursor-pointer ml-0.5"
+                title="Clear device filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {snap.selection && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--surface-2)] border border-[var(--border)] text-xs text-[var(--text)] shadow-2xs">
+              <Globe className="w-3 h-3 text-[var(--green)]" />
+              <span className="font-medium truncate max-w-[130px]">
+                {snap.selection.kind === 'country' ? snap.selection.name : snap.view.detail?.title || 'Selected place'}
+              </span>
+              <button
+                type="button"
+                onClick={() => store.select(null)}
+                className="hover:text-[var(--red)] cursor-pointer ml-0.5"
+                title="Clear location filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          {snap.filters.text && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--surface-2)] border border-[var(--border)] text-xs text-[var(--text)] shadow-2xs">
+              <span className="font-mono text-[11px] truncate max-w-[110px]">"{snap.filters.text}"</span>
+              <button
+                type="button"
+                onClick={() => store.setFilters({ text: '' })}
+                className="hover:text-[var(--red)] cursor-pointer ml-0.5"
+                title="Clear search filter"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          )}
+
+          <button
+            type="button"
+            onClick={() => {
+              store.setFilters({ device: null, text: '' });
+              store.select(null);
+            }}
+            className="text-[11px] text-[var(--muted)] hover:text-[var(--red)] px-1.5 py-0.5 font-medium cursor-pointer"
+            title="Reset all filters"
+          >
+            Reset all
+          </button>
+        </div>
+      )}
 
       {/* Floating Left: Statistics HUD */}
       {showStats && (
