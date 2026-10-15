@@ -8,6 +8,7 @@ interface PanelProps {
   snap: Snapshot;
   windowMinutes: number;
   privacyForced?: boolean;
+  onClose?: () => void;
 }
 
 const barWidthStyle = (fraction: number): CSSProperties => ({
@@ -93,39 +94,52 @@ function TopList({
   );
 }
 
-export function StatsHUD({ store, snap, windowMinutes }: PanelProps) {
+export function StatsHUD({ store, snap, windowMinutes, onClose }: PanelProps) {
   const { view } = snap;
   const activeWin = snap.windowMinutes || windowMinutes || 60;
   const windowLabel = activeWin >= 60 ? `${activeWin / 60}h` : `${activeWin}m`;
 
   return (
     <div className="bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--border)] rounded-xl p-3.5 space-y-3.5 text-[var(--text)] shadow-xl w-72 max-w-[calc(100vw-32px)]">
-      {/* Time Window Selector */}
-      <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
+      {/* Time Window Selector & Close */}
+      <div className="flex items-center justify-between pb-2 border-b border-[var(--border)] gap-2">
         <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">Window</span>
-        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-[10px] font-mono">
-          {[
-            { label: '15m', val: 15 },
-            { label: '1h', val: 60 },
-            { label: '6h', val: 360 },
-            { label: '24h', val: 1440 },
-          ].map((opt) => (
+        <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-[10px] font-mono">
+            {[
+              { label: '15m', val: 15 },
+              { label: '1h', val: 60 },
+              { label: '6h', val: 360 },
+              { label: '24h', val: 1440 },
+            ].map((opt) => (
+              <button
+                key={opt.val}
+                type="button"
+                onClick={() => {
+                  store.setWindowMinutes(opt.val);
+                  localStorage.setItem('agh_atlas_window', String(opt.val));
+                }}
+                className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                  activeWin === opt.val
+                    ? 'bg-[var(--button-bg)] text-[var(--button-text)] font-bold shadow-xs'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {onClose && (
             <button
-              key={opt.val}
               type="button"
-              onClick={() => {
-                store.setWindowMinutes(opt.val);
-                localStorage.setItem('agh_atlas_window', String(opt.val));
-              }}
-              className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
-                activeWin === opt.val
-                  ? 'bg-[var(--button-bg)] text-[var(--button-text)] font-bold shadow-xs'
-                  : 'text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
+              onClick={onClose}
+              className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+              title="Close Stats HUD"
+              aria-label="Close Stats HUD"
             >
-              {opt.label}
+              <X className="w-3.5 h-3.5" />
             </button>
-          ))}
+          )}
         </div>
       </div>
 
@@ -191,7 +205,15 @@ export function StatsHUD({ store, snap, windowMinutes }: PanelProps) {
   );
 }
 
-export function LiveFeedPanel({ store, snap }: { store: AtlasStore; snap: Snapshot }) {
+export function LiveFeedPanel({
+  store,
+  snap,
+  onClose,
+}: {
+  store: AtlasStore;
+  snap: Snapshot;
+  onClose?: () => void;
+}) {
   const { view } = snap;
 
   return (
@@ -204,7 +226,20 @@ export function LiveFeedPanel({ store, snap }: { store: AtlasStore; snap: Snapsh
           </span>
           <span className="text-xs font-bold tracking-tight text-[var(--text)]">Live Query Stream</span>
         </div>
-        <span className="text-[10px] font-mono text-[var(--muted)]">{view.feed.length} logged</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-mono text-[var(--muted)]">{view.feed.length} logged</span>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 rounded-md text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer"
+              title="Close Live Stream"
+              aria-label="Close Live Stream"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Scrollable feed items */}
@@ -217,8 +252,16 @@ export function LiveFeedPanel({ store, snap }: { store: AtlasStore; snap: Snapsh
           view.feed.map((e) => (
             <div
               key={e.id}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(evt) => {
+                if (evt.key === 'Enter' || evt.key === ' ') {
+                  evt.preventDefault();
+                  if (e.dest) store.select({ kind: 'place', key: placeKey(e.dest) });
+                }
+              }}
               onClick={() => e.dest && store.select({ kind: 'place', key: placeKey(e.dest) })}
-              className="p-1.5 rounded-lg bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] border border-transparent hover:border-[var(--border)] transition-colors cursor-pointer group"
+              className="p-1.5 rounded-lg bg-[var(--surface-2)]/60 hover:bg-[var(--surface-2)] border border-transparent hover:border-[var(--border)] transition-colors cursor-pointer group focus:outline-hidden focus:border-[var(--text)]"
             >
               <div className="flex items-center justify-between gap-1.5">
                 <div className="flex items-center gap-1.5 min-w-0">

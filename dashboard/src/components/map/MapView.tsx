@@ -42,7 +42,16 @@ export function MapView({
       instance.destroy();
       map.current = null;
     };
-  }, [store, config]);
+  }, [store]);
+
+  const homeLat = config.home?.lat;
+  const homeLon = config.home?.lon;
+  const homeLabel = config.home?.label;
+  useEffect(() => {
+    if (config.home) {
+      map.current?.setHome(config.home);
+    }
+  }, [homeLat, homeLon, homeLabel]);
 
   const { top, right, bottom, left } = padding;
   useEffect(() => map.current?.setPadding({ top, right, bottom, left }), [top, right, bottom, left]);

@@ -220,9 +220,25 @@ export class AtlasMap {
     this.destroyed = true;
     cancelAnimationFrame(this.raf);
     this.resizeObserver.disconnect();
+    this.fx.removeEventListener('pointerdown', this.onPointerDown);
+    this.fx.removeEventListener('pointermove', this.onPointerMove);
+    this.fx.removeEventListener('pointerup', this.onPointerUp);
+    this.fx.removeEventListener('pointercancel', this.onPointerUp);
+    this.fx.removeEventListener('pointerleave', this.onPointerLeave);
+    this.fx.removeEventListener('wheel', this.onWheel);
+    this.fx.removeEventListener('dblclick', this.onDoubleClick);
     this.base.remove();
     this.fx.remove();
     this.tooltip.remove();
+  }
+
+  setHome(home: { lat: number; lon: number; label?: string }): void {
+    this.options.home = {
+      lat: home.lat,
+      lon: home.lon,
+      label: home.label || 'Home',
+    };
+    this.baseDirty = true;
   }
 
   // --- inputs from the application ------------------------------------------

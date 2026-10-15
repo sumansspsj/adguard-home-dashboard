@@ -1612,7 +1612,8 @@ if (require.main === module) {
       setTimeout(startVitePortListener, 4000);
     }
   }
-  startVitePortListener();
+  // Delay first attempt by 4.5s so Vite in start.bat can bind 5173 first if running
+  setTimeout(startVitePortListener, 4500);
 
   // ── Graceful shutdown ─────────────────────────────────────────────────────────
   function shutdown(signal) {

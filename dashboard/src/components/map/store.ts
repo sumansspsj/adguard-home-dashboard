@@ -363,7 +363,10 @@ export class AtlasStore {
     const feed: AtlasEvent[] = [];
     for (let i = this.events.length - 1; i >= 0 && feed.length < FEED_SIZE; i--) {
       const e = this.events[i]!;
-      if (e.t < start) break;
+      if (e.t < start) {
+        if (e.t < start - 60_000) break;
+        continue;
+      }
       if (filters.classes[e.cls] && this.matchesBase(e, filters, words)) feed.push(e);
     }
 

@@ -179,14 +179,22 @@ export default function WorldMapPage() {
     setHomeModalOpen(false);
   };
 
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const padding = useMemo(
     () => ({
       top: 60,
-      right: showFeed ? 340 : 20,
+      right: isMobile ? 16 : (showFeed ? 340 : 20),
       bottom: 60,
-      left: showStats ? 310 : 20,
+      left: isMobile ? 16 : (showStats ? 310 : 20),
     }),
-    [showStats, showFeed]
+    [isMobile, showStats, showFeed]
   );
 
   return (
@@ -262,7 +270,7 @@ export default function WorldMapPage() {
           </div>
 
           {/* Time Window Selector (15m, 1h, 6h, 24h) */}
-          <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--border)] shadow-md text-xs">
+          <div className="hidden sm:flex items-center gap-1 p-0.5 rounded-lg bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--border)] shadow-md text-xs">
             {[
               { label: '15m', val: 15 },
               { label: '1h', val: 60 },
@@ -375,14 +383,23 @@ export default function WorldMapPage() {
       {/* Floating Left: Statistics HUD */}
       {showStats && (
         <div className="absolute top-14 left-3 z-20 pointer-events-auto animate-fade-in max-h-[calc(100%-70px)] overflow-y-auto no-scrollbar">
-          <StatsHUD store={store} snap={snap} windowMinutes={snap.windowMinutes} />
+          <StatsHUD
+            store={store}
+            snap={snap}
+            windowMinutes={snap.windowMinutes}
+            onClose={() => setShowStats(false)}
+          />
         </div>
       )}
 
       {/* Floating Right: Live Query Feed Panel */}
       {showFeed && (
         <div className="absolute top-14 right-3 z-20 pointer-events-auto animate-fade-in">
-          <LiveFeedPanel store={store} snap={snap} />
+          <LiveFeedPanel
+            store={store}
+            snap={snap}
+            onClose={() => setShowFeed(false)}
+          />
         </div>
       )}
 
