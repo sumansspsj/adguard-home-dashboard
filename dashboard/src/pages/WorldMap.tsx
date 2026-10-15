@@ -18,6 +18,8 @@ import {
   Radio,
   X,
   Check,
+  Crosshair,
+  Loader2,
 } from 'lucide-react';
 
 export default function WorldMapPage() {
@@ -43,6 +45,55 @@ export default function WorldMapPage() {
     lon: clientConfig.home.lon,
     label: clientConfig.home.label || 'Home',
   });
+  const [detecting, setDetecting] = useState(false);
+  const [detectMsg, setDetectMsg] = useState<string | null>(null);
+
+  const handleAutoDetect = () => {
+    setDetecting(true);
+    setDetectMsg(null);
+
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = Math.round(pos.coords.latitude * 10000) / 10000;
+          const lon = Math.round(pos.coords.longitude * 10000) / 10000;
+          setHomeInput((prev) => ({
+            ...prev,
+            lat,
+            lon,
+            label: prev.label === 'Home' || !prev.label ? 'My Location' : prev.label,
+          }));
+          setDetecting(false);
+          setDetectMsg('Detected via device GPS/Wi-Fi!');
+        },
+        async () => {
+          // Fallback to public IP geolocation
+          try {
+            const res = await fetch('https://ipapi.co/json/');
+            const data = await res.json();
+            if (data && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+              setHomeInput({
+                lat: Math.round(data.latitude * 10000) / 10000,
+                lon: Math.round(data.longitude * 10000) / 10000,
+                label: data.city || data.region || 'Home',
+              });
+              setDetectMsg(`Detected: ${data.city || data.country_name}`);
+            } else {
+              setDetectMsg('Could not detect location automatically.');
+            }
+          } catch {
+            setDetectMsg('Could not detect location automatically.');
+          } finally {
+            setDetecting(false);
+          }
+        },
+        { timeout: 6000 }
+      );
+    } else {
+      setDetecting(false);
+      setDetectMsg('Geolocation not supported by browser.');
+    }
+  };
 
   // Create persistent store instance
   const store = useMemo(() => {
@@ -432,6 +483,25 @@ export default function WorldMapPage() {
             <p className="text-xs text-[var(--muted)]">
               Where animated arcs radiate from on the world map. Coordinates stay local on your computer.
             </p>
+
+            {/* Quick Auto-Detect button */}
+            <button
+              type="button"
+              onClick={handleAutoDetect}
+              disabled={detecting}
+              className="w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-[var(--surface-2)] hover:bg-[var(--surface-3)] border border-[var(--border)] hover:border-[var(--strong-border)] text-xs text-[var(--text)] transition-colors cursor-pointer font-medium disabled:opacity-60"
+            >
+              {detecting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--green)]" />
+              ) : (
+                <Crosshair className="w-3.5 h-3.5 text-[var(--green)]" />
+              )}
+              <span>{detecting ? 'Detecting your coordinates…' : 'Auto-Detect My Location'}</span>
+            </button>
+
+            {detectMsg && (
+              <p className="text-[11px] text-[var(--green)] font-medium text-center">{detectMsg}</p>
+            )}
 
             <div className="space-y-3">
               <div>

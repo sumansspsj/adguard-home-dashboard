@@ -4,7 +4,7 @@ echo.
 
 REM Start API server in background
 echo [1/2] Starting API server on port 8080...
-start "AdGuard API" cmd /c "cd /d %~dp0server && node index.js"
+start "AdGuard API" cmd /k "cd /d %~dp0server && node index.js"
 
 REM Wait a moment
 timeout /t 2 /nobreak >nul
