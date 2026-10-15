@@ -1126,15 +1126,37 @@ app.post('/api/atlas/config/home', mutationLimiter, (req, res) => {
   res.json({ ok: true, home: atlasService.home });
 });
 
-app.get('/api/atlas/snapshot', async (req, res) => {
+async function seedAtlasHistory() {
+  if (atlasService.events.length > 0) return;
   try {
-    if (atlasService.events.length === 0) {
-      const curServer = getActiveServer();
-      const data = await aghGet('/control/querylog', { limit: 100 });
-      if (data && Array.isArray(data.data)) {
-        atlasService.seedEntries(data.data, curServer?.name || 'AdGuard Home');
+    const curServer = getActiveServer();
+    const serverName = curServer?.name || 'AdGuard Home';
+    const all = [];
+    // Fetch multiple pages using offset to seed up to 3000 queries
+    for (const offset of [0, 1000, 2000]) {
+      try {
+        const res = await aghGet('/control/querylog', { limit: 1000, offset });
+        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+          all.push(...res.data);
+          if (res.data.length < 1000) break;
+        } else {
+          break;
+        }
+      } catch {
+        break;
       }
     }
+    if (all.length > 0) {
+      atlasService.seedEntries(all, serverName);
+    }
+  } catch (err) {
+    console.warn('[Atlas] Failed to seed history:', err.message);
+  }
+}
+
+app.get('/api/atlas/snapshot', async (req, res) => {
+  try {
+    await seedAtlasHistory();
     res.json(atlasService.getSnapshot());
   } catch (e) {
     res.status(502).json({ error: e.message });
@@ -1149,15 +1171,7 @@ app.get('/api/atlas/stream', async (req, res) => {
   res.flushHeaders();
 
   // If atlasService has no events yet, seed with initial history so the snapshot has data immediately
-  if (atlasService.events.length === 0) {
-    try {
-      const curServer = getActiveServer();
-      const data = await aghGet('/control/querylog', { limit: 100 });
-      if (data && Array.isArray(data.data)) {
-        atlasService.seedEntries(data.data, curServer?.name || 'AdGuard Home');
-      }
-    } catch { /* ignore seed errors */ }
-  }
+  await seedAtlasHistory();
 
   atlasService.addClient(res);
 

@@ -78,10 +78,11 @@ export interface Snapshot {
   status: ServerStatus | null;
   connection: ConnectionState;
   ready: boolean;
+  windowMinutes: number;
 }
 
 export const FEED_SIZE = 70;
-const MAX_EVENTS = 40_000;
+const MAX_EVENTS = 50_000;
 
 export function placeKey(dest: Destination): string {
   return `${dest.lat.toFixed(2)},${dest.lon.toFixed(2)}`;
@@ -134,13 +135,14 @@ export class AtlasStore {
   private aliases = new Map<string, string>();
   private snapshot: Snapshot;
 
-  private readonly windowMs: number;
+  private windowMinutes: number;
+  private readonly maxRetentionMs = 24 * 60 * 60 * 1000; // 24 hours maximum retention in memory
 
   constructor(
-    windowMs: number,
+    initialWindowMinutes = 60,
     initial: { privacy?: boolean; theme?: Theme } = {},
   ) {
-    this.windowMs = windowMs;
+    this.windowMinutes = initialWindowMinutes;
     this.snapshot = {
       view: this.compute(defaultFilters(), null),
       filters: defaultFilters(),
@@ -151,7 +153,17 @@ export class AtlasStore {
       status: null,
       connection: 'connecting',
       ready: false,
+      windowMinutes: initialWindowMinutes,
     };
+  }
+
+  setWindowMinutes(minutes: number): void {
+    if (this.windowMinutes === minutes) return;
+    this.windowMinutes = minutes;
+    this.set({
+      windowMinutes: minutes,
+      view: this.compute(this.snapshot.filters, this.snapshot.selection),
+    });
   }
 
   subscribe = (listener: () => void): (() => void) => {
@@ -211,7 +223,7 @@ export class AtlasStore {
   }
 
   private prune(): void {
-    const cutoff = this.now() - this.windowMs;
+    const cutoff = this.now() - this.maxRetentionMs;
     let drop = 0;
     while (drop < this.events.length && this.events[drop]!.t < cutoff) drop++;
     drop = Math.max(drop, this.events.length - MAX_EVENTS);
@@ -284,8 +296,9 @@ export class AtlasStore {
 
   private compute(filters: Filters, selection: Selection): View {
     const now = this.now();
-    const start = now - this.windowMs;
-    const bucketMs = this.windowMs / BUCKETS;
+    const activeWindowMs = this.windowMinutes * 60_000;
+    const start = now - activeWindowMs;
+    const bucketMs = activeWindowMs / BUCKETS;
     const words = textWords(filters.text);
 
     const byClass: Record<QueryClass, number> = { allowed: 0, blocked: 0, local: 0, noanswer: 0 };
@@ -305,6 +318,7 @@ export class AtlasStore {
     let perMinute = 0;
 
     for (const e of this.events) {
+      if (e.t < start) continue;
       allDevices.add(e.client);
       allInstances.add(e.instance);
       if (!this.matchesBase(e, filters, words)) continue;
@@ -349,6 +363,7 @@ export class AtlasStore {
     const feed: AtlasEvent[] = [];
     for (let i = this.events.length - 1; i >= 0 && feed.length < FEED_SIZE; i--) {
       const e = this.events[i]!;
+      if (e.t < start) break;
       if (filters.classes[e.cls] && this.matchesBase(e, filters, words)) feed.push(e);
     }
 

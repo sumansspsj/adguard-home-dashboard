@@ -95,14 +95,45 @@ function TopList({
 
 export function StatsHUD({ store, snap, windowMinutes }: PanelProps) {
   const { view } = snap;
+  const activeWin = snap.windowMinutes || windowMinutes || 60;
+  const windowLabel = activeWin >= 60 ? `${activeWin / 60}h` : `${activeWin}m`;
 
   return (
     <div className="bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--border)] rounded-xl p-3.5 space-y-3.5 text-[var(--text)] shadow-xl w-72 max-w-[calc(100vw-32px)]">
+      {/* Time Window Selector */}
+      <div className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
+        <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">Window</span>
+        <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--surface-2)] border border-[var(--border)] text-[10px] font-mono">
+          {[
+            { label: '15m', val: 15 },
+            { label: '1h', val: 60 },
+            { label: '6h', val: 360 },
+            { label: '24h', val: 1440 },
+          ].map((opt) => (
+            <button
+              key={opt.val}
+              type="button"
+              onClick={() => {
+                store.setWindowMinutes(opt.val);
+                localStorage.setItem('agh_atlas_window', String(opt.val));
+              }}
+              className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                activeWin === opt.val
+                  ? 'bg-[var(--button-bg)] text-[var(--button-text)] font-bold shadow-xs'
+                  : 'text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Metrics Row */}
       <div className="grid grid-cols-2 gap-2 pb-2.5 border-b border-[var(--border)]">
         <div>
           <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
-            Queries ({windowMinutes}m)
+            Queries ({windowLabel})
           </span>
           <div className="text-xl font-bold font-mono tracking-tight text-[var(--text)]">
             {fmtCompact(view.total)}
@@ -128,7 +159,7 @@ export function StatsHUD({ store, snap, windowMinutes }: PanelProps) {
       <div>
         <div className="flex items-center justify-between text-[10px] text-[var(--muted)] font-mono mb-1">
           <span>Activity Timeline</span>
-          <span>-{windowMinutes}m → now</span>
+          <span>-{windowLabel} → now</span>
         </div>
         <Sparkline buckets={view.buckets} />
       </div>

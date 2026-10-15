@@ -45,7 +45,10 @@ export default function WorldMapPage() {
   });
 
   // Create persistent store instance
-  const store = useMemo(() => new AtlasStore(15 * 60 * 1000, { theme: 'dark' }), []);
+  const store = useMemo(() => {
+    const saved = Number(localStorage.getItem('agh_atlas_window')) || 60;
+    return new AtlasStore(saved, { theme: 'dark' });
+  }, []);
 
   // Subscribe to store snapshot
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot);
@@ -258,6 +261,33 @@ export default function WorldMapPage() {
             </button>
           </div>
 
+          {/* Time Window Selector (15m, 1h, 6h, 24h) */}
+          <div className="flex items-center gap-1 p-0.5 rounded-lg bg-[var(--surface)]/90 backdrop-blur-md border border-[var(--border)] shadow-md text-xs">
+            {[
+              { label: '15m', val: 15 },
+              { label: '1h', val: 60 },
+              { label: '6h', val: 360 },
+              { label: '24h', val: 1440 },
+            ].map((opt) => (
+              <button
+                key={opt.val}
+                type="button"
+                onClick={() => {
+                  store.setWindowMinutes(opt.val);
+                  localStorage.setItem('agh_atlas_window', String(opt.val));
+                }}
+                className={`px-2 py-0.5 rounded-md font-semibold font-mono text-[11px] transition-colors cursor-pointer ${
+                  snap.windowMinutes === opt.val
+                    ? 'bg-[var(--button-bg)] text-[var(--button-text)] shadow-xs'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+                title={`Show queries from past ${opt.label}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
           {/* Toggle Labels */}
           <button
             type="button"
@@ -345,7 +375,7 @@ export default function WorldMapPage() {
       {/* Floating Left: Statistics HUD */}
       {showStats && (
         <div className="absolute top-14 left-3 z-20 pointer-events-auto animate-fade-in max-h-[calc(100%-70px)] overflow-y-auto no-scrollbar">
-          <StatsHUD store={store} snap={snap} windowMinutes={15} />
+          <StatsHUD store={store} snap={snap} windowMinutes={snap.windowMinutes} />
         </div>
       )}
 

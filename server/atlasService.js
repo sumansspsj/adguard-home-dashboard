@@ -67,8 +67,8 @@ function classifyEntry(entry) {
 class AtlasService {
   constructor() {
     this.seq = 0;
-    this.maxWindowMs = 15 * 60 * 1000; // 15 minutes window
-    this.maxEvents = 10000;
+    this.maxWindowMs = 24 * 60 * 60 * 1000; // 24 hours window retention
+    this.maxEvents = 50000;
     this.events = [];
     this.seen = new Set();
     this.clients = new Set();
@@ -89,7 +89,8 @@ class AtlasService {
     return {
       mode: 'live',
       home: this.home,
-      windowMinutes: 15,
+      windowMinutes: 60,
+      maxWindowMinutes: 1440,
       version: '1.0.0',
     };
   }
