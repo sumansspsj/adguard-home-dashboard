@@ -39,6 +39,25 @@
   --green-bg:      #102318;
   --red-bg:        #2a1212;
 
+  /* World Map Tokens */
+  --c-allowed:     #4ade80;
+  --c-blocked:     #f87171;
+  --c-local:       #a78bfa;
+  --c-noanswer:    #fbbf24;
+  --map-land:      #121620;
+  --map-land-edge: #0c1018;
+  --map-dot:       #212836;
+  --map-coast:     #2b3548;
+  --map-border:    #1a2130;
+  --map-graticule: #101520;
+  --map-label:     #94a3b8;
+  --map-halo:      #090909;
+  --map-home:      #ffffff;
+  --map-select:    #4ade80;
+  --map-blend:     additive;
+  --font-ui:       'Inter', sans-serif;
+  --font-mono:     'JetBrains Mono', monospace;
+
   /* Aliases for dashboard compatibility */
   --bg-base:      var(--bg);
   --bg-surface:   var(--surface-2);
@@ -901,3 +920,65 @@ th:first-child, td:first-child {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* ── World Map Canvas & Overlay Styles ───────────────────────────────────────── */
+.map {
+  position: absolute;
+  inset: 0;
+}
+
+.map-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.map-fx {
+  touch-action: none;
+}
+
+.map-tooltip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 16px 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  max-width: 240px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+  white-space: nowrap;
+  z-index: 30;
+  color: var(--text);
+}
+
+.map-tooltip[data-show='true'] {
+  opacity: 1;
+}
+
+.map-tooltip[data-flip='true'] {
+  margin-left: -16px;
+  transform: translate(-100%, 0);
+}
+
+.map-tooltip strong {
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--text);
+}
+
+.map-tooltip span {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--text-2);
+}
+

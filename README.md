@@ -48,6 +48,7 @@ This project is a non-destructive companion layer for AdGuard Home. Your DNS res
 
 - **Overview Dashboard**: High-level DNS metrics, live queries/sec rate, authentic 24-hour timeline graphs, top requested domains, top blocked domains, and top querying clients.
 - **Live DNS Stream**: Real-time query streaming via Server-Sent Events (SSE). Pause, resume, search, and filter queries by Status (*Allowed*, *Blocked*, *SafeBrowsing*, *Parental*), Protocol, Response Type, Client IP, or Domain.
+- **World Map (AdGuard Atlas)**: Real-time global flight-arc visualization of live DNS queries mapping resolution paths from your home location to edge servers worldwide using embedded GeoIP resolution (`geoip-lite`). Features rate-governed arc animation, landing pulse rings, country polygon hit-testing, destination drill-downs, offline synthetic traffic demo mode, and customizable home GPS pin.
 - **Client Management**: Identify devices on your network with authentic query counts, block rates, and client detail drill-downs.
 - **Security & Rules**: Manage custom DNS block/allow rules, parental control, safe search, malware/phishing protection, and upstream DNS resolver benchmarking.
 - **Settings & Node Switcher**: Switch between multiple AdGuard Home instances (e.g. Primary router, Secondary Raspberry Pi) with encrypted server credential storage.

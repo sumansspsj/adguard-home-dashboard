@@ -14,6 +14,7 @@ interface TopBarProps {
 const routeTitles: Record<string, string> = {
   '/': 'Overview',
   '/live': 'Live DNS',
+  '/map': 'World Map',
   '/clients': 'Clients',
   '/security': 'Security & Rules',
   '/settings': 'Settings',

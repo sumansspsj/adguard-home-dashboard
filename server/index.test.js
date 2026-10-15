@@ -622,4 +622,48 @@ describe('Multi-server node endpoints', () => {
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Atlas World Map Endpoints
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Atlas World Map endpoints', () => {
+  it('GET /api/atlas/config returns client map configuration', async () => {
+    const res = await request(app).get('/api/atlas/config');
+    expect(res.status).toBe(200);
+    expect(res.body.mode).toBe('live');
+    expect(res.body.home).toBeDefined();
+    expect(typeof res.body.home.lat).toBe('number');
+    expect(typeof res.body.home.lon).toBe('number');
+  });
+
+  it('POST /api/atlas/config/home updates home location coordinates', async () => {
+    const res = await request(app).post('/api/atlas/config/home').send({
+      lat: 51.5074,
+      lon: -0.1278,
+      label: 'London Home',
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.home.lat).toBe(51.5074);
+    expect(res.body.home.lon).toBe(-0.1278);
+    expect(res.body.home.label).toBe('London Home');
+  });
+
+  it('POST /api/atlas/config/home rejects invalid coordinates', async () => {
+    const res = await request(app).post('/api/atlas/config/home').send({
+      lat: 95, // out of range
+      lon: 50,
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it('GET /api/atlas/snapshot returns current snapshot with events array', async () => {
+    mockAghGet({ data: [{ question: { name: 'example.com', type: 'A' }, answer: [{ type: 'A', value: '93.184.216.34' }] }] });
+    const res = await request(app).get('/api/atlas/snapshot');
+    expect(res.status).toBe(200);
+    expect(typeof res.body.now).toBe('number');
+    expect(Array.isArray(res.body.events)).toBe(true);
+    expect(res.body.status.geoip).toBe(true);
+  });
+});
+
 

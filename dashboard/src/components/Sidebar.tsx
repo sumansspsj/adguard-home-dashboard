@@ -1,16 +1,17 @@
 import { NavLink } from 'react-router-dom'
 import { useState } from 'react'
 import {
-  LayoutDashboard, Radio, Monitor, Shield, Settings, X, Command
+  LayoutDashboard, Radio, Globe, Monitor, Shield, Settings, X, Command
 } from 'lucide-react'
 import NetworkPulse from './NetworkPulse'
 
 const navItems = [
   { to: '/', label: 'Overview', icon: LayoutDashboard, keyHint: '1' },
   { to: '/live', label: 'Live DNS', icon: Radio, keyHint: '2' },
-  { to: '/clients', label: 'Clients', icon: Monitor, keyHint: '3' },
-  { to: '/security', label: 'Security & Rules', icon: Shield, keyHint: '4' },
-  { to: '/settings', label: 'Settings', icon: Settings, keyHint: '5' },
+  { to: '/map', label: 'World Map', icon: Globe, keyHint: '3' },
+  { to: '/clients', label: 'Clients', icon: Monitor, keyHint: '4' },
+  { to: '/security', label: 'Security & Rules', icon: Shield, keyHint: '5' },
+  { to: '/settings', label: 'Settings', icon: Settings, keyHint: '6' },
 ]
 
 interface SidebarContentProps {

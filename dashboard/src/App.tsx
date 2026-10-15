@@ -22,6 +22,7 @@ const ClientsPage      = lazy(() => import('./pages/Clients'))
 const ClientDetailPage = lazy(() => import('./pages/ClientDetail'))
 const SecurityPage     = lazy(() => import('./pages/Security'))
 const SettingsPage     = lazy(() => import('./pages/Settings'))
+const WorldMapPage     = lazy(() => import('./pages/WorldMap'))
 
 function PageLoader() {
   return (
@@ -266,6 +267,7 @@ function AppInner() {
               <Routes>
                 <Route path="/"             element={<OverviewPage />} />
                 <Route path="/live"         element={<LiveDNSPage />} />
+                <Route path="/map"          element={<WorldMapPage />} />
                 <Route path="/clients"      element={<ClientsPage />} />
                 <Route path="/clients/:ip"  element={<ClientDetailPage />} />
                 <Route path="/security"     element={<SecurityPage />} />

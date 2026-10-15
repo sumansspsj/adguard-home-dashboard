@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Radio, Monitor, Shield, Settings } from 'lucide-react'
+import { LayoutDashboard, Radio, Globe, Monitor, Shield, Settings } from 'lucide-react'
 
 interface BottomNavProps {
   onOpenMobileMenu?: () => void
@@ -11,6 +11,7 @@ export default function BottomNav(_props?: BottomNavProps) {
   const navItems = [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
     { to: '/live', label: 'Live DNS', icon: Radio },
+    { to: '/map', label: 'Map', icon: Globe },
     { to: '/clients', label: 'Clients', icon: Monitor },
     { to: '/security', label: 'Security', icon: Shield },
     { to: '/settings', label: 'Settings', icon: Settings },
@@ -24,7 +25,7 @@ export default function BottomNav(_props?: BottomNavProps) {
         paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 4px)',
       }}
     >
-      <div className="grid grid-cols-5 h-[54px] max-w-md mx-auto px-1">
+      <div className="grid grid-cols-6 h-[54px] max-w-lg mx-auto px-1">
         {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}

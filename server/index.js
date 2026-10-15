@@ -8,6 +8,7 @@ const { performance } = require('perf_hooks');
 
 // ── Multi-server manager & startup validation ────────────────────────────────
 const serversManager = require('./serversManager');
+const atlasService = require('./atlasService');
 const initialServers = serversManager.loadServers();
 
 if ((!initialServers || initialServers.length === 0) && process.env.NODE_ENV !== 'test') {
@@ -1021,6 +1022,9 @@ async function pollAndBroadcastSSE() {
 
     const data = await aghGet('/control/querylog', { limit: 50 });
     const entries = data.data || [];
+    try {
+      atlasService.processEntries(entries, curServer?.name || 'AdGuard Home');
+    } catch { /* ignore atlas processing errors */ }
 
     for (const client of sseClients) {
       if (client.res.destroyed || client.res.writableEnded) continue;
@@ -1097,7 +1101,74 @@ app.get('/api/querylog/stream', async (req, res) => {
     if (cleaned) return;
     cleaned = true;
     sseClients.delete(client);
-    if (sseClients.size === 0 && sseBroadcastInterval) {
+    if (sseClients.size === 0 && atlasService.clients.size === 0 && sseBroadcastInterval) {
+      clearInterval(sseBroadcastInterval);
+      sseBroadcastInterval = null;
+    }
+  };
+
+  req.on('close', cleanup);
+  res.on('close', cleanup);
+  res.on('finish', cleanup);
+});
+
+// ── Atlas World Map endpoints ─────────────────────────────────────────────
+app.get('/api/atlas/config', (req, res) => {
+  res.json(atlasService.getConfig());
+});
+
+app.post('/api/atlas/config/home', mutationLimiter, (req, res) => {
+  const { lat, lon, label } = req.body || {};
+  if (typeof lat !== 'number' || typeof lon !== 'number' || Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+    return res.status(400).json({ error: 'Valid latitude (-90 to 90) and longitude (-180 to 180) are required' });
+  }
+  atlasService.setHomeLocation(lat, lon, label);
+  res.json({ ok: true, home: atlasService.home });
+});
+
+app.get('/api/atlas/snapshot', async (req, res) => {
+  try {
+    if (atlasService.events.length === 0) {
+      const curServer = getActiveServer();
+      const data = await aghGet('/control/querylog', { limit: 100 });
+      if (data && Array.isArray(data.data)) {
+        atlasService.processEntries(data.data, curServer?.name || 'AdGuard Home');
+      }
+    }
+    res.json(atlasService.getSnapshot());
+  } catch (e) {
+    res.status(502).json({ error: e.message });
+  }
+});
+
+app.get('/api/atlas/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  atlasService.addClient(res);
+
+  // Send current snapshot immediately
+  const snapshot = atlasService.getSnapshot();
+  res.write(`event: snapshot\ndata: ${JSON.stringify(snapshot)}\n\n`);
+
+  if (!sseBroadcastInterval) {
+    lastKnownServerId = getActiveServer()?.id;
+    sseBroadcastInterval = setInterval(pollAndBroadcastSSE, 1500);
+  }
+
+  const pingInterval = setInterval(() => {
+    if (!res.destroyed && !res.writableEnded) {
+      try { res.write(`: ping\n\n`); } catch { /* ignore */ }
+    }
+  }, 10000);
+
+  const cleanup = () => {
+    clearInterval(pingInterval);
+    atlasService.clients.delete(res);
+    if (sseClients.size === 0 && atlasService.clients.size === 0 && sseBroadcastInterval) {
       clearInterval(sseBroadcastInterval);
       sseBroadcastInterval = null;
     }

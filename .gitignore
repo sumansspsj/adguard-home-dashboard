@@ -41,3 +41,7 @@ Thumbs.db
 *.jks
 *.apk
 *.aab
+
+# Local reference source folders
+world map/
+
