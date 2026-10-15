@@ -70,6 +70,7 @@ class AtlasService {
     this.maxWindowMs = 15 * 60 * 1000; // 15 minutes window
     this.maxEvents = 10000;
     this.events = [];
+    this.seen = new Set();
     this.clients = new Set();
     this.home = {
       lat: Number(process.env.HOME_LAT) || 28.6139,
@@ -113,11 +114,82 @@ class AtlasService {
     }
   }
 
+  entryKey(entry) {
+    return `${entry.time || ''}|${entry.client || ''}|${entry.question?.name || ''}|${entry.question?.type || ''}`;
+  }
+
+  remember(key) {
+    this.seen.add(key);
+    if (this.seen.size > 5000) {
+      let drop = 2500;
+      for (const k of this.seen) {
+        if (drop-- <= 0) break;
+        this.seen.delete(k);
+      }
+    }
+  }
+
+  /**
+   * Seed historical entries for the cold-start snapshot without broadcasting them as live flight arcs.
+   */
+  seedEntries(entries, instanceName = 'AdGuard Home') {
+    if (!Array.isArray(entries) || entries.length === 0) return [];
+
+    const seeded = [];
+    // Process in chronological order (oldest to newest)
+    const reversed = entries.slice().reverse();
+    for (const entry of reversed) {
+      const key = this.entryKey(entry);
+      if (this.seen.has(key)) continue;
+      this.remember(key);
+
+      const domain = (entry.question?.name || '').replace(/\.$/, '').toLowerCase();
+      if (!domain) continue;
+
+      const timeMs = entry.time ? Date.parse(entry.time) || Date.now() : Date.now();
+      const client = entry.client_info?.name || entry.client || 'unknown';
+      const { cls, address } = classifyEntry(entry);
+
+      const event = {
+        id: (this.seq++).toString(36),
+        t: timeMs,
+        instance: instanceName,
+        client,
+        domain,
+        qtype: entry.question?.type || '',
+        cls,
+      };
+
+      if (address) {
+        const dest = geoip.lookup(address);
+        if (dest) event.dest = dest;
+      }
+
+      seeded.push(event);
+    }
+
+    if (seeded.length > 0) {
+      this.events.push(...seeded);
+      this.prune();
+    }
+
+    return seeded;
+  }
+
+  /**
+   * Process incoming poll entries, filter to only genuinely new ones, and broadcast live.
+   */
   processEntries(entries, instanceName = 'AdGuard Home') {
     if (!Array.isArray(entries) || entries.length === 0) return [];
 
     const newEvents = [];
-    for (const entry of entries) {
+    // Process from oldest to newest so sequence and timestamps are in order
+    const reversed = entries.slice().reverse();
+    for (const entry of reversed) {
+      const key = this.entryKey(entry);
+      if (this.seen.has(key)) continue;
+      this.remember(key);
+
       const domain = (entry.question?.name || '').replace(/\.$/, '').toLowerCase();
       if (!domain) continue;
 

@@ -50,7 +50,7 @@ export default function WorldMapPage() {
   // Subscribe to store snapshot
   const snap = useSyncExternalStore(store.subscribe, store.getSnapshot);
 
-  // 1. Fetch remote atlas configuration on mount
+  // 1. Fetch remote atlas configuration and initial snapshot on mount
   useEffect(() => {
     fetch(getApiUrl('/atlas/config'))
       .then((res) => res.json())
@@ -69,7 +69,18 @@ export default function WorldMapPage() {
       .catch(() => {
         // Fallback to demo/static config
       });
-  }, []);
+
+    // Warm up store with initial snapshot
+    fetch(getApiUrl('/atlas/snapshot'))
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.events) && data.events.length > 0) {
+          store.reset(data.events, data.now);
+          if (data.status) store.setStatus(data.status);
+        }
+      })
+      .catch(() => {});
+  }, [store]);
 
   // 2. Start store periodic recomputation timer
   useEffect(() => {
@@ -87,7 +98,7 @@ export default function WorldMapPage() {
       store.setConnection('live');
 
       const id = setInterval(() => {
-        if (!snap.paused) {
+        if (!store.getSnapshot().paused) {
           const batch = gen.advance(Date.now());
           if (batch.length > 0) store.ingest(batch);
         }
@@ -99,6 +110,10 @@ export default function WorldMapPage() {
     // Live mode: connect to Express SSE endpoint
     store.setConnection('connecting');
     const es = new EventSource(getApiUrl('/atlas/stream'));
+
+    es.addEventListener('open', () => {
+      store.setConnection('live');
+    });
 
     es.addEventListener('snapshot', (e: MessageEvent) => {
       try {
@@ -136,7 +151,7 @@ export default function WorldMapPage() {
     return () => {
       es.close();
     };
-  }, [store, demoMode, snap.paused]);
+  }, [store, demoMode]);
 
   const toggleQueryClass = (cls: QueryClass) => {
     store.toggleClass(cls);

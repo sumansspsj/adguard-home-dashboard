@@ -995,7 +995,7 @@ let sseBroadcastInterval = null;
 let lastKnownServerId = null;
 
 async function pollAndBroadcastSSE() {
-  if (sseClients.size === 0) {
+  if (sseClients.size === 0 && atlasService.clients.size === 0) {
     if (sseBroadcastInterval) {
       clearInterval(sseBroadcastInterval);
       sseBroadcastInterval = null;
@@ -1132,7 +1132,7 @@ app.get('/api/atlas/snapshot', async (req, res) => {
       const curServer = getActiveServer();
       const data = await aghGet('/control/querylog', { limit: 100 });
       if (data && Array.isArray(data.data)) {
-        atlasService.processEntries(data.data, curServer?.name || 'AdGuard Home');
+        atlasService.seedEntries(data.data, curServer?.name || 'AdGuard Home');
       }
     }
     res.json(atlasService.getSnapshot());
@@ -1141,12 +1141,23 @@ app.get('/api/atlas/snapshot', async (req, res) => {
   }
 });
 
-app.get('/api/atlas/stream', (req, res) => {
+app.get('/api/atlas/stream', async (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
+
+  // If atlasService has no events yet, seed with initial history so the snapshot has data immediately
+  if (atlasService.events.length === 0) {
+    try {
+      const curServer = getActiveServer();
+      const data = await aghGet('/control/querylog', { limit: 100 });
+      if (data && Array.isArray(data.data)) {
+        atlasService.seedEntries(data.data, curServer?.name || 'AdGuard Home');
+      }
+    } catch { /* ignore seed errors */ }
+  }
 
   atlasService.addClient(res);
 
